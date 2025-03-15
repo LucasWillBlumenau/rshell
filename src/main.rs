@@ -24,9 +24,6 @@ fn main() {
         println!("{}", args);
     });
 
-
-
-
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -38,7 +35,7 @@ fn main() {
 
         if command == "type" {
             let args = args.trim();
-            if commands.contains_key(args) {
+            if commands.contains_key(args) || args == "type" {
                 println!("{} is a shell builtin", args)
             } else {
                 println!("{}: not found", args)
