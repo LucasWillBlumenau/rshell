@@ -33,7 +33,13 @@ fn main() {
         io::stdout().flush().unwrap();
     });
 
-    commands.insert("pwd", |_: &str| {
+    commands.insert("pwd", |args: &str| {
+
+        if args.trim() != "" {
+            println!("pwd: expected 0 arguments");
+            return;
+        }
+
         let current_working_directory = std::env::current_dir();
         match current_working_directory {
             Ok(current_working_directory) => {
