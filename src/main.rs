@@ -1,6 +1,13 @@
+mod tools;
+
+
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::{collections::HashMap, path::Path, process::exit};
+use std::{collections::HashMap, process::exit};
+
+use self::tools::string::split;
+use self::tools::paths::search_file_in_path_envar;
+
 
 fn main() {
     let stdin = io::stdin();
@@ -40,19 +47,11 @@ fn main() {
             let args = args.trim();
             if commands.contains_key(args) || args == "type" {
                 println!("{} is a shell builtin", args);
-                continue;
+            } else if let Some(path) = search_file_in_path_envar(args) {
+                println!("{} is {}", args, path);
+            } else {
+                println!("{}: not found", args);
             }
-            
-            let path = search_file_in_path_envar(args);
-
-            match path {
-                Some(path) => {
-                    println!("{} is {}", args, path);
-                }
-                None => {
-                    println!("{}: not found", args);
-                }
-            }            
             continue;
         }
 
@@ -68,35 +67,4 @@ fn main() {
         
     }
 
-}
-
-fn split(text: &str, sep: char) -> (&str, &str) {
-    let mut index = 0;
-    let text_length = text.len();
-    for c in text.chars() {
-        if c == sep {
-            return (&text[0..index], &text[index + 1..text_length])
-        }
-        index += 1;
-    }
-
-    return (&text, "")
-}
-
-fn search_file_in_path_envar(filename: &str) -> Option<String> {
-
-    let path = std::env::var("PATH");
-    match path {
-        Ok(path) => {
-            let paths= path.split(':');
-            for path in paths {
-                let path = path.to_owned() + "/" + filename;
-                if Path::exists(Path::new(&path)) {
-                    return Some(path);
-                }
-            }
-            None
-        },
-        Err(_) => None
-    }
 }
