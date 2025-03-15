@@ -22,6 +22,7 @@ fn main() {
 
     commands.insert("echo", |args: &str| {
         println!("{}", args);
+        io::stdout().flush().unwrap();
     });
 
     loop {
@@ -30,6 +31,8 @@ fn main() {
         
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
+
+        input = String::from(input.trim());
 
         let (command, args) = split(&input, ' ');
 
@@ -42,7 +45,6 @@ fn main() {
             }
             continue;
         }
-
 
         let func = commands.get(command);
         match func {
