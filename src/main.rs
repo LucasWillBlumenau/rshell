@@ -25,6 +25,9 @@ fn main() {
                     println!("invalid argument for exit command exit: {}", code)
                 }
             }
+        } else if input.starts_with("echo ") {
+            let message = get_string_content_after_text(&input, "echo ").trim();
+            println!("{}", message)
         } else {
             println!("{}: command not found", input.trim())
         }
