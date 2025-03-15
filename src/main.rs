@@ -1,9 +1,31 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::process::exit;
+use std::{collections::HashMap, process::exit};
 
 fn main() {
     let stdin = io::stdin();
+    let mut commands: HashMap<&str, fn(&str) -> ()> = HashMap::new();
+
+    commands.insert("exit", |args: &str| {
+        let code = args.trim();
+        let result = code.parse::<i32>();
+
+        match result {
+            Ok(code) => {
+                exit(code);
+            }
+            Err(_) => {
+                println!("invalid argument for exit command exit: {}", code)
+            }
+        }
+    });
+
+    commands.insert("echo", |args: &str| {
+        println!("{}", args);
+    });
+
+
+
 
     loop {
         print!("$ ");
@@ -12,42 +34,43 @@ fn main() {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
 
-        if input.starts_with("exit ") {
-            
-            let code = get_string_content_after_text(&input, "exit ").trim();
-            let result = code.parse::<i32>();
+        let (command, args) = split(&input, ' ');
 
-            match result {
-                Ok(code) => {
-                    exit(code);
-                }
-                Err(_) => {
-                    println!("invalid argument for exit command exit: {}", code)
-                }
+        if command == "type" {
+            let args = args.trim();
+            if commands.contains_key(args) {
+                println!("{} is a shell builtin", args)
+            } else {
+                println!("{}: not found", args)
             }
-        } else if input.starts_with("echo ") {
-            let message = get_string_content_after_text(&input, "echo ").trim();
-            println!("{}", message)
-        } else {
-            println!("{}: command not found", input.trim())
+            continue;
+        }
+
+
+        let func = commands.get(command);
+        match func {
+            Some(func) => {
+                (func)(args)
+            }
+            None => {
+                println!("{}: command not found", command)
+            }
         }
         
     }
 
 }
 
-fn get_string_content_after_text<'a>(text: &'a str, subtext: &str) -> &'a str {
 
-    let subtext_length = subtext.len();
-
-    for i in 0..text.len() {
-
-        if &text[i..subtext_length + i] == subtext {
-            return &text[i + subtext_length..]
+fn split(text: &str, sep: char) -> (&str, &str) {
+    let mut index = 0;
+    let text_length = text.len();
+    for c in text.chars() {
+        if c == sep {
+            return (&text[0..index], &text[index + 1..text_length])
         }
-
+        index += 1;
     }
 
-    return ""
-
+    return (&text, "")
 }
