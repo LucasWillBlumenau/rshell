@@ -1,6 +1,7 @@
 mod tools;
 
 
+use core::str;
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::{collections::HashMap, process::exit};
@@ -55,16 +56,17 @@ fn main() {
             continue;
         }
 
-        let func = commands.get(command);
-        match func {
-            Some(func) => {
-                (func)(args)
-            }
-            None => {
-                println!("{}: command not found", command)
-            }
+        if let Some(func) = commands.get(command) {
+            (func)(args);
         }
-        
+        else if let Some(path) = search_file_in_path_envar(command) {
+            let mut command = std::process::Command::new(&path);
+            let out = command.args(args.split(' '))
+                                     .output()
+                                     .expect(&format!("error executing process {}", &path));
+            println!("{}", String::from_utf8_lossy(&out.stdout).trim());
+        } else {
+            println!("{}: command not found", command);
+        }
     }
-
 }
