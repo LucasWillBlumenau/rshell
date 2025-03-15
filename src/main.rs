@@ -58,10 +58,15 @@ fn main() {
 
         if let Some(func) = commands.get(command) {
             (func)(args);
-        }
-        else if let Some(path) = search_file_in_path_envar(command) {
-            let mut command = std::process::Command::new(&path);
-            let out = command.args(args.split(' '))
+        } else if command.starts_with("/") || command.starts_with("./") || command.starts_with("../") {
+            let mut process = std::process::Command::new(&command);
+            let out = process.args(args.split(' '))
+                                     .output()
+                                     .expect(&format!("error executing process {}", &command));
+            println!("{}", String::from_utf8_lossy(&out.stdout).trim());
+        } else if let Some(path) = search_file_in_path_envar(command) {
+            let mut process = std::process::Command::new(&path);
+            let out = process.args(args.split(' '))
                                      .output()
                                      .expect(&format!("error executing process {}", &path));
             println!("{}", String::from_utf8_lossy(&out.stdout).trim());
