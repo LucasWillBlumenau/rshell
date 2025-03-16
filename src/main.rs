@@ -1,85 +1,24 @@
 mod tools;
+mod commands;
 
 
 use core::str;
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::path::Path;
-use std::{collections::HashMap, process::exit};
+use std::collections::HashMap;
 
-use self::tools::string::split;
-use self::tools::paths::search_file_in_path_envar;
+use tools::{paths::search_file_in_path_envar, string::split};
+
 
 
 fn main() {
     let stdin = io::stdin();
     let mut commands: HashMap<&str, fn(&str) -> ()> = HashMap::new();
 
-    commands.insert("exit", |args: &str| {
-        let code = args.trim();
-        let result = code.parse::<i32>();
-
-        match result {
-            Ok(code) => {
-                exit(code);
-            }
-            Err(_) => {
-                println!("invalid argument for exit command exit: {}", code)
-            }
-        }
-    });
-
-    commands.insert("echo", |args: &str| {
-        println!("{}", args);
-        io::stdout().flush().unwrap();
-    });
-
-    commands.insert("pwd", |args: &str| {
-
-        if args.trim() != "" {
-            println!("pwd: expected 0 arguments");
-            return;
-        }
-
-        let current_working_directory = std::env::current_dir();
-        match current_working_directory {
-            Ok(current_working_directory) => {
-                if let Some(path) = current_working_directory.to_str() {
-                    println!("{}", path);
-                } else {
-                    println!("");
-                }
-            }
-            Err(err) => {
-                println!("{}", err.to_string())
-            }
-        }
-    });
-
-
-    commands.insert("cd", |args: &str| {
-        let args: Vec<&str> = args.trim()
-                                  .split(' ')
-                                  .collect();
-
-        let args_length = args.len();
-        if args_length != 1 {
-            println!("Expected 1 arg; {} found", args_length);
-            return;
-        }
-
-        let dir = args[0];
-        let path = Path::new(dir);
-        if !path.is_dir() {
-            println!("cd: {}: No such file or directory", dir);
-            return;
-        }
-
-        let result = std::env::set_current_dir(path);
-        if let Err(err) = result {
-            println!("{}", err);
-        }
-    });
+    commands.insert("exit", commands::exit::exit);
+    commands.insert("echo", commands::echo::echo);
+    commands.insert("pwd", commands::pwd::pwd);
+    commands.insert("cd", commands::cd::cd);
 
     loop {
         print!("$ ");
