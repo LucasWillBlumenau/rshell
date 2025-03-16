@@ -71,7 +71,7 @@ fn main() {
         let dir = args[0];
         let path = Path::new(dir);
         if !path.is_dir() {
-            println!("cd: {}: no such file or directory", dir);
+            println!("cd: {}: No such file or directory", dir);
             return;
         }
 
