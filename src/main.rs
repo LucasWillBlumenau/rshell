@@ -60,10 +60,17 @@ fn main() {
             search_file_in_path_envar(command).is_some()
         {
             let mut process = std::process::Command::new(&command);
-            let out = process.args(args.split(' '))
+            let args = split_args(args);
+            match args {
+                Ok(args) => {
+                    let out = process.args(args)
                                      .output()
                                      .expect(&format!("error executing process {}", &command));
-            println!("{}", String::from_utf8_lossy(&out.stdout).trim());
+                    println!("{}", String::from_utf8_lossy(&out.stdout).trim());
+                },
+                Err(err) => println!("{}", err)
+            };
+            
         } else {
             println!("{}: command not found", command);
         }
