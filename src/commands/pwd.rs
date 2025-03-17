@@ -1,5 +1,5 @@
-pub fn pwd(args: &str) -> () {
-    if args.trim() != "" {
+pub fn pwd(args: &[&str]) -> () {
+    if args.len() != 0 {
         println!("pwd: expected 0 arguments");
         return;
     }

@@ -1,11 +1,7 @@
 use std::{env::VarError, path::Path};
 
-pub fn cd(args: &str) -> () {
-    let args: Vec<&str> = args.trim()
-                              .split(' ')
-                              .collect();
-
-    let args_length = args.len();
+pub fn cd(args: &[&str]) -> () {
+   let args_length = args.len();
     if args_length != 1 {
         println!("Expected 1 arg; {} found", args_length);
         return;

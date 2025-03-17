@@ -7,13 +7,13 @@ use core::str;
 use std::io::{self, Write};
 use std::collections::HashMap;
 
-use tools::{paths::search_file_in_path_envar, string::split};
+use tools::{paths::search_file_in_path_envar, string::{split, split_args}};
 
 
 
 fn main() {
     let stdin = io::stdin();
-    let mut commands: HashMap<&str, fn(&str) -> ()> = HashMap::new();
+    let mut commands: HashMap<&str, fn(&[&str]) -> ()> = HashMap::new();
 
     commands.insert("exit", commands::exit::exit);
     commands.insert("echo", commands::echo::echo);
@@ -44,7 +44,15 @@ fn main() {
         }
 
         if let Some(func) = commands.get(command) {
-            (func)(args);
+            let args = split_args(args);
+            match args {
+                Ok(args) => {
+                    let args: Vec<&str> = args.iter().map(|x| &**x).collect();
+                    (func)(&args);
+                },
+                Err(err) => println!("{}", err)
+            }
+            
         } else if 
             command.starts_with("/") ||
             command.starts_with("./") ||
