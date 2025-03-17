@@ -5,8 +5,13 @@ pub fn echo(args: &[&str]) -> () {
         println!("expected 1 or more argument; found 0");
         return;
     }
-    for &arg in args {
-        println!("{}", arg.trim());
-        io::stdout().flush().unwrap();
+    
+    let last_index = args.len() - 1;
+    let mut buffer = String::new();
+    for i in 0..last_index {
+        buffer.push_str(&format!("{} ", &args[i]));
     }
+    buffer.push_str(args[last_index]);
+    println!("{}", buffer);
+    io::stdout().flush().unwrap();
 }
