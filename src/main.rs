@@ -43,16 +43,16 @@ fn main() {
             continue;
         }
 
+        let args = split_args(args);
+        if let Err(err) = args{
+            println!("{}", err);
+            continue;
+        }
+        let args = args.unwrap();
+
         if let Some(func) = commands.get(command) {
-            let args = split_args(args);
-            match args {
-                Ok(args) => {
-                    let args: Vec<&str> = args.iter().map(|x| &**x).collect();
-                    (func)(&args);
-                },
-                Err(err) => println!("{}", err)
-            }
-            
+            let args: Vec<&str> = args.iter().map(|x| &**x).collect();
+            (func)(&args);            
         } else if 
             command.starts_with("/") ||
             command.starts_with("./") ||
@@ -60,17 +60,10 @@ fn main() {
             search_file_in_path_envar(command).is_some()
         {
             let mut process = std::process::Command::new(&command);
-            let args = split_args(args);
-            match args {
-                Ok(args) => {
-                    let out = process.args(args)
-                                     .output()
-                                     .expect(&format!("error executing process {}", &command));
-                    println!("{}", String::from_utf8_lossy(&out.stdout).trim());
-                },
-                Err(err) => println!("{}", err)
-            };
-            
+            let out = process.args(args)
+                                .output()
+                                .expect(&format!("error executing process {}", &command));
+            println!("{}", String::from_utf8_lossy(&out.stdout).trim());            
         } else {
             println!("{}: command not found", command);
         }
