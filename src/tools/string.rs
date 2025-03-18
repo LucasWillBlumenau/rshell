@@ -49,7 +49,8 @@ fn search_until_close_quote(text: &str, quote: char) -> Result<(usize, String), 
         }
         
         if escaped {
-            buffer.push(c);
+            let to_append = handle_escaped_char(c);
+            buffer.push_str(&to_append);
             escaped = false;
         } else if close_buffer {
             if c != quote {
@@ -80,7 +81,8 @@ fn search_until_whitespace(text: &str) -> (usize, String) {
     let mut escaped = false;
     for (i, c) in text.chars().enumerate() {
         if escaped {
-            buffer.push(c);
+            let to_append = handle_escaped_char(c);
+            buffer.push_str(&to_append);
             escaped = false;
         } else if c == '\\' {
             escaped = true;
@@ -93,4 +95,13 @@ fn search_until_whitespace(text: &str) -> (usize, String) {
     }
 
     return (text.len(), buffer);
+}
+
+
+fn handle_escaped_char(c: char) -> String {
+    match c {
+        ' ' => String::from(" "),
+        _ => format!("\\{}", c)
+    }
+
 }
