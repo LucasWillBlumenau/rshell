@@ -42,18 +42,24 @@ pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 fn search_until_close_quote(text: &str, quote: char) -> Result<(usize, String), Error> {
     let mut close_buffer = false;
     let mut buffer = String::new();
+    let mut escaped = true;
     for (i, c) in text.chars().enumerate() {
         if i == 0 {
             continue;
         }
         
-        if close_buffer {
+        if escaped {
+            buffer.push(handle_escaped_char(c));
+            escaped = false;
+        } else if close_buffer {
             if c != quote {
                 return Ok((i + 1, buffer));
             }
             close_buffer = false;
         }
-        else if c != quote {
+        else if c == '\\' {
+            escaped = true;
+        } else if c != quote {
             buffer.push(c);
         } else {
             close_buffer = true;
@@ -71,12 +77,31 @@ fn search_until_close_quote(text: &str, quote: char) -> Result<(usize, String), 
 
 fn search_until_whitespace(text: &str) -> (usize, String) {
     let mut buffer = String::new();
+    let mut escaped = false;
     for (i, c) in text.chars().enumerate() {
-        if c == ' ' {
+        if escaped {
+            buffer.push(handle_escaped_char(c));
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == ' ' {
             return (i + 1, buffer);
+        } else {
+            buffer.push(c);
         }
-        buffer.push(c);
+        
     }
 
     return (text.len(), buffer);
+}
+
+
+fn handle_escaped_char(c: char) -> char {
+    match c {
+        'n' => '\n',
+        't' => '\t',
+        'r' => '\r',
+        _ => c
+    }
+
 }
