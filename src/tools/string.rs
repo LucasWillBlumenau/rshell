@@ -101,6 +101,8 @@ fn search_until_whitespace(text: &str) -> (usize, String) {
 fn handle_escaped_char(c: char) -> String {
     match c {
         ' ' => String::from(" "),
+        '\'' => String::from("'"),
+        '"' => String::from("\""),
         _ => format!("\\{}", c)
     }
 
