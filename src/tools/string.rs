@@ -103,7 +103,8 @@ fn handle_escaped_char(c: char) -> String {
         ' ' => String::from(" "),
         '\'' => String::from("'"),
         '"' => String::from("\""),
-        _ => format!("\\{}", c)
+        '\\' => String::from("\\"),
+        _ => format!("{}", c)
     }
 
 }
