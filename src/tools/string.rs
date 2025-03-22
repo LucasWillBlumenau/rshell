@@ -15,10 +15,9 @@ pub fn split(text: &str, sep: char) -> (&str, &str) {
 
 pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 
-    let escaped_text = text.trim_end()
+    let mut text = text.trim_end()
         .trim_start();
 
-    let mut text= &escaped_text[0..escaped_text.len()];
     let mut args: Vec<String> = vec![];
 
     while text.len() > 0 {
@@ -34,7 +33,6 @@ pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 
         args.push(arg);
         text = &text[index..text.len()].trim_start();
-
     }
 
     Ok(args)
@@ -75,19 +73,21 @@ fn search_until_close_quote(text: &str, quote: char) -> Result<(usize, String), 
 fn search_until_whitespace(text: &str) -> (usize, String) {
     let mut buffer = String::new();
     let mut text = text;
-    let mut sequences_dropped_length = 0;
+    let mut dropped_caracters_count = 0;
 
     let sequences = Box::new(["\\ ", "'\\'", "\\\"", "\\'", "\\", " "]);
 
     while let Some((index, seq)) = find_sequences_index(text, sequences.as_ref()) {
         
         buffer.push_str(&text[0..index]);
-        text = &text[index + seq.len()..text.len()];
-        sequences_dropped_length += seq.len();
+
+        let index = index + seq.len();
+        
+        text = &text[index..text.len()];
+        dropped_caracters_count += index;
 
         if seq == " " {
-            sequences_dropped_length += buffer.len();
-            return (sequences_dropped_length - 1, buffer);
+            return (dropped_caracters_count, buffer);
         } else if seq == "\\ " {
             buffer.push(' ');
         } else if seq == "\\'\\" {
@@ -100,11 +100,10 @@ fn search_until_whitespace(text: &str) -> (usize, String) {
 
     }
 
-    let index = text.find(' ').unwrap_or(text.len());
-    buffer.push_str(&text[0..index]);
+    buffer.push_str(&text);
+    dropped_caracters_count += text.len();
 
-    sequences_dropped_length += buffer.len();
-    return (sequences_dropped_length, buffer);
+    return (dropped_caracters_count, buffer);
 }
 
 
