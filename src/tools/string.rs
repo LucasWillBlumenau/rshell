@@ -24,9 +24,9 @@ pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
         let index: usize;
         let arg: String;
         if text.starts_with('\'') {
-            (index, arg) = search_until_close_quote(&text, '\'')?;
+            (index, arg) = search_until_single_quote(&text)?;
         } else if text.starts_with('"') {
-            (index, arg) = search_until_close_quote(&text, '"')?;
+            (index, arg) = search_until_double_quote(&text)?;
         } else {
             (index, arg) = search_until_whitespace(&text);
         }
@@ -39,34 +39,83 @@ pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 }
 
 
-fn search_until_close_quote(text: &str, quote: char) -> Result<(usize, String), Error> {
-    let mut close_buffer = false;
+fn search_until_single_quote(text: &str) -> Result<(usize, String), Error> {
     let mut buffer = String::new();
+    let mut dropped_caracters_count = 0;
+    let mut text = text;
 
-    for (i, c) in text.chars().enumerate() {
-        if i == 0 {
-            continue;
-        }
-        
-        if close_buffer {
-            if c != quote {
-                return Ok((i + 1, buffer));
-            }
-            close_buffer = false;
-        }
-        else if c != quote {
-            buffer.push(c);
-        } else {
-            close_buffer = true;
-        }
+    if !text.starts_with('\'') {
+        return Err(Error::msg("text not quoted with '"));
     }
 
-    if close_buffer {
-        Ok((text.len(), buffer))
-    } else {
-        Err(Error::msg(format!("{} not closed", quote)))
+    text = &text[1..text.len()];
+    dropped_caracters_count += 1;
+
+    let sequences = ["''", "'"];
+
+    while let Some((index, seq)) = find_sequences_index(text, &sequences) {
+        buffer.push_str(&text[0..index]);
+
+        let index = index + seq.len();
+        dropped_caracters_count += index;
+
+        text = &text[index..text.len()];
+
+        if seq == "'" {
+            return Ok((dropped_caracters_count, buffer));
+        }
+
     }
 
+    Err(Error::msg("' not closed"))
+}
+
+
+fn search_until_double_quote(text: &str) -> Result<(usize, String), Error> {
+    let mut buffer = String::new();
+    let mut dropped_caracters_count = 0;
+    let mut text = text;
+
+    if !text.starts_with('"') {
+        return Err(Error::msg("text not quoted with \""));
+    }
+
+    text = &text[1..text.len()];
+    dropped_caracters_count += 1;
+
+    let sequences = ["\\\\", "\"\"", "\" ", "\\\"", "\""];
+
+    while let Some((index, seq)) = find_sequences_index(text, &sequences) {
+
+        buffer.push_str(&text[0..index]);
+
+        let index = index + seq.len();
+        dropped_caracters_count += index;
+
+        text = &text[index..text.len()];
+
+        if seq == "\" " {
+            return Ok((dropped_caracters_count, buffer));
+        } else if seq == "\\\\" {
+            buffer.push('\\');
+        } else if seq == "\\\"" {
+            buffer.push('"');
+        }
+
+    }
+
+    let index = text.find('"');
+
+    match index {
+        Some(index) => {
+            buffer.push_str(&text[0..index]);
+            dropped_caracters_count += index;
+
+            Ok((dropped_caracters_count, buffer))
+        }
+        None => Ok((dropped_caracters_count, buffer))
+    }
+    
 }
 
 
@@ -75,9 +124,9 @@ fn search_until_whitespace(text: &str) -> (usize, String) {
     let mut text = text;
     let mut dropped_caracters_count = 0;
 
-    let sequences = Box::new(["\\ ", "'\\'", "\\\"", "\\'", "\\", " "]);
+    let sequences = ["\\ ", "'\\'", "\\'", "\\", " "];
 
-    while let Some((index, seq)) = find_sequences_index(text, sequences.as_ref()) {
+    while let Some((index, seq)) = find_sequences_index(text, &sequences) {
         
         buffer.push_str(&text[0..index]);
 
