@@ -15,9 +15,11 @@ pub fn split(text: &str, sep: char) -> (&str, &str) {
 
 pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 
-    let mut text = text.trim_end()
-        .trim_start();
+    let escaped_text = text.trim_end()
+        .trim_start()
+        .replace("'\\'", "\\\\");
 
+    let mut text= &escaped_text[0..escaped_text.len()];
     let mut args: Vec<String> = vec![];
 
     while text.len() > 0 {
