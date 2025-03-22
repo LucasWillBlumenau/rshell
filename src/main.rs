@@ -7,7 +7,7 @@ use core::str;
 use std::io::{self, Write};
 use std::collections::HashMap;
 
-use tools::{paths::search_file_in_path_envar, string::{split, split_args}};
+use tools::{paths::search_file_in_path_envar, string::split_args};
 
 
 
@@ -29,10 +29,29 @@ fn main() {
 
         input = input.trim().to_owned();
 
-        let (command, args) = split(&input, ' ');
+        let cli = split_args(&input);
+        if let Err(err) = cli {
+            println!("{}", err);
+            continue;
+        }
+
+        let cli = cli.unwrap();
+
+        if cli.len() == 0 {
+            continue;
+        }
+
+        let (command, args) = cli.split_at(1);
+        let command = command[0].as_str();
 
         if command == "type" {
-            let args = args.trim();
+
+            if args.len() != 1 {
+                println!("type got {} args; expected 1", args.len());
+                continue;
+            }
+
+            let args = args[0].trim();
             if commands.contains_key(args) || args == "type" {
                 println!("{} is a shell builtin", args);
             } else if let Some(path) = search_file_in_path_envar(args) {
@@ -42,13 +61,6 @@ fn main() {
             }
             continue;
         }
-
-        let args = split_args(args);
-        if let Err(err) = args{
-            println!("{}", err);
-            continue;
-        }
-        let args = args.unwrap();
 
         if let Some(func) = commands.get(command) {
             let args: Vec<&str> = args.iter().map(|x| &**x).collect();
