@@ -16,8 +16,7 @@ pub fn split(text: &str, sep: char) -> (&str, &str) {
 pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 
     let escaped_text = text.trim_end()
-        .trim_start()
-        .replace("'\\'", "\\\\");
+        .trim_start();
 
     let mut text= &escaped_text[0..escaped_text.len()];
     let mut args: Vec<String> = vec![];
@@ -35,6 +34,7 @@ pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 
         args.push(arg);
         text = &text[index..text.len()].trim_start();
+
     }
 
     Ok(args)
@@ -44,25 +44,19 @@ pub fn split_args(text: &str) -> Result<Vec<String>, Error> {
 fn search_until_close_quote(text: &str, quote: char) -> Result<(usize, String), Error> {
     let mut close_buffer = false;
     let mut buffer = String::new();
-    let mut escaped = true;
+
     for (i, c) in text.chars().enumerate() {
         if i == 0 {
             continue;
         }
         
-        if escaped {
-            let to_append = handle_escaped_char(c);
-            buffer.push_str(&to_append);
-            escaped = false;
-        } else if close_buffer {
+        if close_buffer {
             if c != quote {
                 return Ok((i + 1, buffer));
             }
             close_buffer = false;
         }
-        else if c == '\\' {
-            escaped = true;
-        } else if c != quote {
+        else if c != quote {
             buffer.push(c);
         } else {
             close_buffer = true;
@@ -80,33 +74,63 @@ fn search_until_close_quote(text: &str, quote: char) -> Result<(usize, String), 
 
 fn search_until_whitespace(text: &str) -> (usize, String) {
     let mut buffer = String::new();
-    let mut escaped = false;
-    for (i, c) in text.chars().enumerate() {
-        if escaped {
-            let to_append = handle_escaped_char(c);
-            buffer.push_str(&to_append);
-            escaped = false;
-        } else if c == '\\' {
-            escaped = true;
-        } else if c == ' ' {
-            return (i + 1, buffer);
-        } else {
-            buffer.push(c);
-        }
+    let mut text = text;
+    let mut sequences_dropped_length = 0;
+
+    let sequences = Box::new(["\\ ", "'\\'", "\\\"", "\\'", "\\", " "]);
+
+    while let Some((index, seq)) = find_sequences_index(text, sequences.as_ref()) {
         
+        buffer.push_str(&text[0..index]);
+        text = &text[index + seq.len()..text.len()];
+        sequences_dropped_length += seq.len();
+
+        if seq == " " {
+            sequences_dropped_length += buffer.len();
+            return (sequences_dropped_length - 1, buffer);
+        } else if seq == "\\ " {
+            buffer.push(' ');
+        } else if seq == "\\'\\" {
+            buffer.push('\'');
+        } else if seq == "\\\"" {
+            buffer.push('"');
+        } else if seq == "\\'" {
+            buffer.push('\'');
+        }
+
     }
 
-    return (text.len(), buffer);
+    let index = text.find(' ').unwrap_or(text.len());
+    buffer.push_str(&text[0..index]);
+
+    sequences_dropped_length += buffer.len();
+    return (sequences_dropped_length, buffer);
 }
 
 
-fn handle_escaped_char(c: char) -> String {
-    match c {
-        ' ' => String::from(" "),
-        '\'' => String::from("'"),
-        '"' => String::from("\""),
-        '\\' => String::from("\\"),
-        _ => format!("{}", c)
+fn find_sequences_index<'a>(text: &str, sequences: &[&'a str]) -> Option<(usize, &'a str)> {
+    
+    let mut index_and_seq: Option<(usize, &str)> = None;
+    let mut min_index = text.len();
+
+    for seq in sequences.to_owned() {
+        
+        if seq.len() > text.len() {
+            continue;
+        }
+
+        let iterations = text.len() - seq.len();
+
+        for i in 0..=iterations {
+            let text = &text[i..i + seq.len()];
+            if text == seq && i < min_index {
+                index_and_seq = Some((i, seq));
+                min_index = i;
+                break;
+            }
+        }
+
     }
+    index_and_seq
 
 }
