@@ -1,8 +1,9 @@
-pub fn exit(args: &[&str]) {
+use super::output::Output;
+
+pub fn exit(args: &[&str]) -> Output {
     let args_length = args.len();
     if args_length != 1 {
-        println!("expected 1 argument; found {}", args_length);
-        return;
+        return Output::err(format!("expected 1 argument; found {args_length}"));
     }
     let args = args[0];
     let code = args.trim();
@@ -10,6 +11,6 @@ pub fn exit(args: &[&str]) {
 
     match result {
         Ok(code) => std::process::exit(code),
-        Err(_) => println!("invalid argument for exit command exit: {}", code)
-    };
+        Err(_) => Output::ok(format!("invalid argument for exit command exit: {code}"))
+    }
 }

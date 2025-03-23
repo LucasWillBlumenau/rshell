@@ -1,10 +1,10 @@
 use std::{env::VarError, path::Path};
+use super::output::Output;
 
-pub fn cd(args: &[&str]) -> () {
+pub fn cd(args: &[&str]) -> Output {
    let args_length = args.len();
     if args_length != 1 {
-        println!("Expected 1 arg; {} found", args_length);
-        return;
+        return Output::err(format!("Expected 1 arg; {} found", args_length));
     }
 
     let dir = expand_user_path(args[0]);
@@ -12,17 +12,17 @@ pub fn cd(args: &[&str]) -> () {
         Ok(dir) => {
             let path = Path::new(&dir);
             if !path.is_dir() {
-                println!("cd: {}: No such file or directory", dir);
-                return;
+                return Output::ok(format!("cd: {dir}: No such file or directory"));
             }
         
             let result = std::env::set_current_dir(path);
             if let Err(err) = result {
-                println!("{}", err);
+                return Output::err(format!("{err}"));
             }
+            return Output::ok(String::new());
         }
         Err(err) => {
-            println!("{}", err);
+            return Output::err(err.to_string());
         }
     } 
  

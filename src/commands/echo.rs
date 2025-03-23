@@ -1,9 +1,8 @@
-use std::io::{self, Write};
+use super::output::Output;
 
-pub fn echo(args: &[&str]) -> () {
+pub fn echo(args: &[&str]) -> Output {
     if args.len() == 0 {
-        println!("expected 1 or more argument; found 0");
-        return;
+        return Output::err(format!("expected 1 or more argument; found 0"));
     }
     
     let last_index = args.len() - 1;
@@ -12,6 +11,5 @@ pub fn echo(args: &[&str]) -> () {
         buffer.push_str(&format!("{} ", &args[i]));
     }
     buffer.push_str(args[last_index]);
-    println!("{}", buffer);
-    io::stdout().flush().unwrap();
+    return Output::ok(format!("{buffer}"));
 }
