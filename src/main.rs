@@ -139,6 +139,6 @@ fn append_to_file(path: String, content: &str) -> Result<(), Error> {
     if file_already_had_content {
         file.write_all("\n".as_bytes())?;
     }
-    file.write_all(content.as_bytes())?;
+    file.write_all(content.trim().as_bytes())?;
     Ok(())
 }
