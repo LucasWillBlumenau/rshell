@@ -4,21 +4,30 @@ use anyhow::Error;
 pub struct Command {
     pub name: String,
     pub args: Vec<String>,
-    pub redirect_to: Option<String>
+    pub redirect_output_to: Option<String>,
+    pub redirect_error_to: Option<String>,
 }
 
 impl Command {
 
     pub fn from_cli(cli: &str) -> Result<Self, Error> {
-        let redirection_index = Command::find_index(cli, [">", "1>"].as_ref());
+        let mut cli = cli;
+        let mut redirect_output_to = None;
+        let mut redirect_error_to = None;
 
-        let (cli, file) = if let Some(redirection_index) = redirection_index {
-            let (cli, file) = cli.split_at(redirection_index);
-            let file = if file.starts_with("1>") { &file[2..] } else { &file[1..] };
-            (cli, Some(file.trim().to_owned()))
-        } else {
-            (cli, None)
-        };
+        let sequences= ["1>", "2>", ">"];
+
+        if let Some((index, seq))  = Command::find_sequences_index(cli, &sequences) {
+
+            let redirection_path = &cli[index + seq.len()..];
+            cli = &cli[..index];
+
+            if seq == ">" || seq == "1>" {
+                redirect_output_to = Some(String::from(redirection_path));
+            } else {
+                redirect_error_to = Some(String::from(redirection_path));
+            }
+        }
         
         let cli = Command::split_args(cli)?;
 
@@ -33,19 +42,9 @@ impl Command {
         Ok(Command {
             name: command,
             args: args.to_owned(),
-            redirect_to: file,
+            redirect_output_to,
+            redirect_error_to,
         })
-    }
-
-    fn find_index<'a>(text: &'a str, slices: &'a [&str]) -> Option<usize> {        
-        let min_index = slices.iter()
-            .copied()
-            .map(|slice| text.find(slice))
-            .filter(|index| index.is_some())
-            .map(|index| index.unwrap())
-            .min();
-
-        min_index
     }
 
 

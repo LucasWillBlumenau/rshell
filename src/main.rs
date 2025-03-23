@@ -35,22 +35,24 @@ fn main() {
 
         if let Err(err) = cli {
             print!("{}", string::add_new_line_to_string_if_its_missing_and_its_not_empty(err.to_string().trim()));
-            io::stdout().flush().unwrap();
             continue;
         }
 
         let command = cli.unwrap();
         let out = process_command(&commands, &command.name, &command.args);
 
-        if let Some(out_file) = command.redirect_to {
-            _ = write_to_file(out_file, &out.stdout);
+        if let Some(out_file) = command.redirect_output_to {
+            write_to_file_and_log_erros(out_file, &out.stdout);
+            if out.stderr.len() > 0 {
+                print!("{}", string::add_new_line_to_string_if_its_missing_and_its_not_empty(&out.stderr.trim()));
+            }
+        } else if let Some(out_file) = command.redirect_error_to {
+            write_to_file_and_log_erros(out_file, &out.stderr);
+            if out.stdout.len() > 0 {
+                print!("{}", string::add_new_line_to_string_if_its_missing_and_its_not_empty(&out.stdout.trim()));
+            }
         } else {
-            print!("{}", string::add_new_line_to_string_if_its_missing_and_its_not_empty(&out.stdout.trim()));
-            io::stdout().flush().unwrap();
-        }
-
-        if !out.is_success {
-            print!("{}", string::add_new_line_to_string_if_its_missing_and_its_not_empty(&out.stderr.trim()));
+            print!("{}", string::add_new_line_to_string_if_its_missing_and_its_not_empty(out.message().trim()));
         }
     }
 }
@@ -98,22 +100,23 @@ fn execute_process(command_name: &str, command_args: &[String]) -> Output {
     let out = process.args(command_args)
                         .output()
                         .expect(&format!("error executing process {}", &command_name));
-        
-
-    if out.status.success() {
-        Output::ok(format!("{}", String::from_utf8_lossy(&out.stdout).trim()))
-    } else {
-        Output {
-            stdout: String::from_utf8_lossy(&out.stdout).to_string(),
-            stderr: String::from_utf8_lossy(&out.stderr).to_string(),
-            is_success: false,
-        }
+    Output {
+        stdout: String::from_utf8_lossy(&out.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&out.stderr).to_string(),
+        is_success: out.status.success(),
     }
 }
 
 
+fn write_to_file_and_log_erros(path: String, content: &str) {
+    let result = write_to_file(path, content);
+    if let Err(err) = result {
+        println!("Error writting to file: {err}");
+    }
+}
+
 fn write_to_file(path: String, content: &str) -> Result<(), Error> {
-    let mut file = File::create(path)?;
+    let mut file = File::create(path.trim())?;
     _ = file.write_all(content.as_bytes())?;
 
     Ok(())

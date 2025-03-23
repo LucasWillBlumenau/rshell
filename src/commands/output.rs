@@ -15,4 +15,12 @@ impl Output {
         Output { stdout, stderr: String::new(), is_success: true }
     }
 
+    pub fn message(&self) -> &str {
+        if self.is_success {
+            &self.stdout[..]
+        } else {
+            &self.stderr[..]
+        }
+    }
+ 
 }
