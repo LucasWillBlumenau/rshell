@@ -5,10 +5,10 @@ mod commands;
 use core::str;
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::{collections::HashMap, fs::File};
+use std::{collections::HashMap, fs::File, os::unix::fs::MetadataExt};
 
 use anyhow::Error;
-use commands::output::Output;
+use commands::{command::Redirection, output::Output};
 use tools::{paths::search_file_in_path_envar, string};
 
 
@@ -108,8 +108,12 @@ fn execute_process(command_name: &str, command_args: &[String]) -> Output {
 }
 
 
-fn write_to_file_and_log_erros(path: String, content: &str) {
-    let result = write_to_file(path, content);
+fn write_to_file_and_log_erros(path: Redirection, content: &str) {
+    let result = match &path.redirection_type {
+        commands::command::RedirectionType::Write => write_to_file(path.path, content),
+        commands::command::RedirectionType::Append => append_to_file(path.path, content),
+    };
+    
     if let Err(err) = result {
         println!("Error writting to file: {err}");
     }
@@ -117,7 +121,24 @@ fn write_to_file_and_log_erros(path: String, content: &str) {
 
 fn write_to_file(path: String, content: &str) -> Result<(), Error> {
     let mut file = File::create(path.trim())?;
-    _ = file.write_all(content.as_bytes())?;
+    file.write_all(content.as_bytes())?;
 
+    Ok(())
+}
+
+
+fn append_to_file(path: String, content: &str) -> Result<(), Error> {
+    let mut file = File::options()
+        .append(true)
+        .create(true)
+        .open(path.trim())?;
+
+    let file_metadata = file.metadata()?;
+    let file_already_had_content = file_metadata.size() > 0;
+
+    if file_already_had_content {
+        file.write_all("\n".as_bytes())?;
+    }
+    file.write_all(content.as_bytes())?;
     Ok(())
 }

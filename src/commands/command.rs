@@ -4,9 +4,23 @@ use anyhow::Error;
 pub struct Command {
     pub name: String,
     pub args: Vec<String>,
-    pub redirect_output_to: Option<String>,
-    pub redirect_error_to: Option<String>,
+    pub redirect_output_to: Option<Redirection>,
+    pub redirect_error_to: Option<Redirection>,
 }
+
+#[derive(Debug)]
+pub struct Redirection {
+    pub path: String,
+    pub redirection_type: RedirectionType,
+ }
+
+
+#[derive(Debug)]
+pub enum RedirectionType {
+    Append,
+    Write
+}
+
 
 impl Command {
 
@@ -15,7 +29,7 @@ impl Command {
         let mut redirect_output_to = None;
         let mut redirect_error_to = None;
 
-        let sequences= ["1>", "2>", ">"];
+        let sequences= ["1>>", ">>", "2>>", "2>", "1>", ">"];
 
         if let Some((index, seq))  = Command::find_sequences_index(cli, &sequences) {
 
@@ -23,9 +37,25 @@ impl Command {
             cli = &cli[..index];
 
             if seq == ">" || seq == "1>" {
-                redirect_output_to = Some(String::from(redirection_path));
+                redirect_output_to = Some(Redirection { 
+                    path: String::from(redirection_path),
+                    redirection_type: RedirectionType::Write,
+                });
+            } else if seq == ">>" || seq == "1>>" {
+                redirect_output_to = Some(Redirection { 
+                    path: String::from(redirection_path),
+                    redirection_type: RedirectionType::Append,
+                });
+            } else if seq == "2>" {
+                redirect_error_to = Some(Redirection { 
+                    path: String::from(redirection_path),
+                    redirection_type: RedirectionType::Write,
+                });
             } else {
-                redirect_error_to = Some(String::from(redirection_path));
+                redirect_error_to = Some(Redirection { 
+                    path: String::from(redirection_path),
+                    redirection_type: RedirectionType::Append,
+                });
             }
         }
         
