@@ -9,27 +9,34 @@ use std::{collections::HashMap, fs::File, os::unix::fs::MetadataExt};
 
 use anyhow::Error;
 use commands::{command::Redirection, output::Output};
-use tools::{paths::search_file_in_path_envar, string};
+use tools::{cli::CommandLine, paths::search_file_in_path_envar, string};
 
 
 
 fn main() {
-    let stdin = io::stdin();
+    
     let mut commands: HashMap<&str, fn(&[&str]) -> Output> = HashMap::new();
-
     commands.insert("exit", commands::exit::exit);
     commands.insert("echo", commands::echo::echo);
     commands.insert("pwd", commands::pwd::pwd);
     commands.insert("cd", commands::cd::cd);
 
+    let mut cli = CommandLine::new(&commands);
+
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
         
-        let mut input = String::new();
-        stdin.read_line(&mut input).unwrap();
+        let input = cli.read();
+        if let Err(err) = input {
+            println!("Erro reading input: {err}");
+            continue;
+        }
 
-        input = input.trim().to_owned();
+        let input = input.unwrap()
+            .trim()
+            .to_owned();
+
 
         let cli = commands::command::Command::from_cli(&input);
 
