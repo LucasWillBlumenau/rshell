@@ -1,7 +1,7 @@
 use std::io::{self, Write};
-
 use console::{Key, Term};
 
+const BEEP: u8 = 7;
 
 
 pub struct CommandLine<'a> {
@@ -26,9 +26,15 @@ impl<'a> CommandLine<'a> {
 
             match key {
                 Key::Tab => {
+                    let old_length = buffer.len();
+
                     term.clear_chars(buffer.len())?;
                     buffer = self.complete_word(buffer);
                     term.write(buffer.as_bytes())?;
+
+                    if old_length == buffer.len() {
+                        term.write(&[BEEP])?;
+                    }
                 },
                 Key::Backspace => {
                     if buffer.len() > 0 {
