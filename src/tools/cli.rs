@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::{io::{self, Write}, vec};
 use console::{Key, Term};
 
 use super::paths::get_executables_available_in_path;
@@ -23,8 +23,8 @@ impl<'a> CommandLine<'a> {
 
         let mut buffer = String::new();
 
-        let mut key = term.read_key()?;
         term.show_cursor()?;
+        let mut key = term.read_key()?;
 
         while key != Key::Enter {
 
@@ -40,7 +40,7 @@ impl<'a> CommandLine<'a> {
                         continue;
                     }
 
-                    let old_length = buffer.len();
+                    let old_length: usize = buffer.len();
                     buffer = self.complete_command(buffer);
                     if old_length == buffer.len() {
                         term.write(&[BEEP])?;
@@ -81,7 +81,7 @@ impl<'a> CommandLine<'a> {
             .collect();
 
         if possible_commands.len() == 1 {
-            return create_new_command(args, possible_commands);
+            return create_new_command(args, &possible_commands);
         }
         
         let executables = get_executables_available_in_path();
@@ -93,24 +93,44 @@ impl<'a> CommandLine<'a> {
         
         if executables.len() == 0 {
             return buffer;
-        } 
-        
-        if executables.len() == 1{
-            return create_new_command(args, executables);
         }
-        
+
+        if executables.len() == 1{
+            return create_new_command(args, &executables);
+        }
+
         executables.sort();
-        self.buffered_completion = executables.iter().map(|str| str.to_string()).collect();
-        buffer
+
+        let mut complete_until = executables.len();
+        for index in 0..executables[..2].len() - 1 {
+            let next_index = index + 1;
+
+            let left = executables[index];
+            let right = executables[next_index];
+
+            if !right.starts_with(left) || next_index > 1 {
+                complete_until = next_index;
+                break;
+            }
+        }
+
+        if complete_until == 1 {
+            self.buffered_completion = executables.iter().map(|str| str.to_string()).collect();
+            buffer
+        } else {
+            create_new_command(args, &executables[0..complete_until])
+        }
+
+        
     }
 }
 
-fn create_new_command(args: &str, possible_commands: Vec<&str>) -> String {
+fn create_new_command(args: &str, possible_commands: &[&str]) -> String {
     let command = possible_commands.first().unwrap();
     let mut buffer = String::from(*command);
-    if args.len() == 0 {
+    if args.len() == 0 && possible_commands.len() == 1 {
         buffer.push(' ');
-    } else {
+    } else if args.len() > 0 {
         buffer.push_str(args);
     }
     buffer
