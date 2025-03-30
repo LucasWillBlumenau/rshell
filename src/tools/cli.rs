@@ -7,13 +7,15 @@ const BEEP: u8 = 7;
 
 
 pub struct CommandLine<'a> {
-    commands: &'a [&'a str]
+    commands: &'a [&'a str],
+    buffered_completion: Vec<String>
 }
+
 
 impl<'a> CommandLine<'a> {
 
     pub fn new(commands: &'a [&'a str]) -> Self {
-        CommandLine { commands }
+        CommandLine { commands, buffered_completion: vec![] }
     }
 
     pub fn read(&mut self) -> Result<String, io::Error> {
@@ -28,6 +30,16 @@ impl<'a> CommandLine<'a> {
 
             match key {
                 Key::Tab => {
+                    if self.buffered_completion.len() > 0 {
+                        term.write_line("")?;
+                        term.write_line(&self.buffered_completion.join("  "))?;
+                        term.write("$ ".as_bytes())?;
+                        term.write(buffer.as_bytes())?;
+                        term.write(&[BEEP])?;
+                        self.buffered_completion.clear();
+                        continue;
+                    }
+
                     let old_length = buffer.len();
                     buffer = self.complete_command(buffer);
                     if old_length == buffer.len() {
@@ -42,10 +54,12 @@ impl<'a> CommandLine<'a> {
                         buffer.remove(buffer.len() - 1);
                         term.clear_chars(1)?;
                     }
+                    self.buffered_completion.clear();
                 }
                 Key::Char(key) => {
                     buffer.push(key);
                     term.write(&[key as u8])?;
+                    self.buffered_completion.clear();
                 },
                 _ => (),
             }
@@ -56,7 +70,7 @@ impl<'a> CommandLine<'a> {
         Ok(buffer)
     }
 
-    fn complete_command(&self, buffer: String) -> String {
+    fn complete_command(&mut self, buffer: String) -> String {
 
         let index = buffer.find(' ').unwrap_or(buffer.len());
         let (command, args) = buffer.split_at(index);
@@ -71,18 +85,23 @@ impl<'a> CommandLine<'a> {
         }
         
         let executables = get_executables_available_in_path();
-        let executables: Vec<&str> = executables
+        let mut executables: Vec<&str> = executables
             .iter()
             .map(|cmd| cmd.as_str())
             .filter(|key| key.starts_with(command))
             .collect();
         
-        if executables.len() == 1 {
+        if executables.len() == 0 {
+            return buffer;
+        } 
+        
+        if executables.len() == 1{
             return create_new_command(args, executables);
         }
-
+        
+        executables.sort();
+        self.buffered_completion = executables.iter().map(|str| str.to_string()).collect();
         buffer
-
     }
 }
 
