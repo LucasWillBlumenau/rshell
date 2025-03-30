@@ -1,6 +1,8 @@
 use std::io::{self, Write};
 use console::{Key, Term};
 
+use super::paths::get_executables_available_in_path;
+
 const BEEP: u8 = 7;
 
 
@@ -27,13 +29,12 @@ impl<'a> CommandLine<'a> {
             match key {
                 Key::Tab => {
                     let old_length = buffer.len();
-
-                    term.clear_chars(buffer.len())?;
-                    buffer = self.complete_word(buffer);
-                    term.write(buffer.as_bytes())?;
-
+                    buffer = self.complete_command(buffer);
                     if old_length == buffer.len() {
                         term.write(&[BEEP])?;
+                    } else {
+                        term.clear_chars(old_length)?;
+                        term.write(buffer.as_bytes())?;
                     }
                 },
                 Key::Backspace => {
@@ -44,7 +45,7 @@ impl<'a> CommandLine<'a> {
                 }
                 Key::Char(key) => {
                     buffer.push(key);
-                    term.write(format!("{key}").as_bytes())?;
+                    term.write(&[key as u8])?;
                 },
                 _ => (),
             }
@@ -55,7 +56,7 @@ impl<'a> CommandLine<'a> {
         Ok(buffer)
     }
 
-    fn complete_word(&self, buffer: String) -> String {
+    fn complete_command(&self, buffer: String) -> String {
 
         let index = buffer.find(' ').unwrap_or(buffer.len());
         let (command, args) = buffer.split_at(index);
@@ -66,18 +67,32 @@ impl<'a> CommandLine<'a> {
             .collect();
 
         if possible_commands.len() == 1 {
-            let command = possible_commands.first().unwrap();
-            let mut buffer = String::from(*command);
-            if args.len() == 0 {
-                buffer.push(' ');
-            } else {
-                buffer.push_str(args);
-            }
-            buffer
-            
-        } else {
-            buffer
+            return create_new_command(args, possible_commands);
+        }
+        
+        let executables = get_executables_available_in_path();
+        let executables: Vec<&str> = executables
+            .iter()
+            .map(|cmd| cmd.as_str())
+            .filter(|key| key.starts_with(command))
+            .collect();
+        
+        if executables.len() == 1 {
+            return create_new_command(args, executables);
         }
 
+        buffer
+
     }
+}
+
+fn create_new_command(args: &str, possible_commands: Vec<&str>) -> String {
+    let command = possible_commands.first().unwrap();
+    let mut buffer = String::from(*command);
+    if args.len() == 0 {
+        buffer.push(' ');
+    } else {
+        buffer.push_str(args);
+    }
+    buffer
 }

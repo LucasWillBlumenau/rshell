@@ -14,7 +14,6 @@ use tools::{cli::CommandLine, paths::search_file_in_path_envar, string};
 
 
 fn main() {
-    
     let mut commands: HashMap<&str, fn(&[&str]) -> Output> = HashMap::new();
     commands.insert("exit", commands::exit::exit);
     commands.insert("echo", commands::echo::echo);
