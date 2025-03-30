@@ -21,7 +21,12 @@ fn main() {
     commands.insert("pwd", commands::pwd::pwd);
     commands.insert("cd", commands::cd::cd);
 
-    let mut cli = CommandLine::new(&commands);
+    let mut command_names: Vec<&str> = commands.keys()
+        .copied()
+        .collect();
+    command_names.push("type");
+
+    let mut cli = CommandLine::new(command_names.as_ref());
 
     loop {
         print!("$ ");
